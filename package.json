@@ -1,0 +1,43 @@
+{
+  "name": "@local/cantonese-speech",
+  "version": "1.0.3",
+  "private": true,
+  "type": "module",
+  "description": "macOS local speech for DSH Desktop: reads replies or selected page text with Cantonese and English voices.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "README.md",
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "GITHUB-DESKTOP.md",
+    "CHANGELOG.md",
+    "USER-GUIDE.md",
+    "GITHUB-CLI.md",
+    "USER-GUIDE.pdf",
+    "USER-GUIDE.docx",
+    "scripts/*.py",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "license": "MIT",
+  "author": "Cheung Chi Sing"
+}

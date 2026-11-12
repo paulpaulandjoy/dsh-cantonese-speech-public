@@ -306,7 +306,7 @@ def page_field(paragraph, field):
 # ---------- header / footer ----------
 header_p = section.header.paragraphs[0]
 header_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-hr = header_p.add_run("DSH 粵語朗讀外掛  ·  使用者與 AI 協作指南  ·  v1.0.3")
+hr = header_p.add_run("DSH 粵語朗讀外掛  ·  使用者與 AI 協作指南  ·  v1.1.0")
 set_run(hr, size=8, color=GRAY)
 para_bottom_border(header_p, "D8E0E6", 6)
 
@@ -348,10 +348,10 @@ r = p4.add_run("給人類看的完整版  ·  可以照著做，也可以交給 
 set_run(r, size=9.5, color=RGBColor(0xBF, 0xD6, 0xE5))
 
 doc.add_paragraph().paragraph_format.space_after = Pt(18)
-body("版本 1.0.3", size=12, color=NAVY)
-body("2026-11-11  ·  macOS  ·  DSH Desktop", size=9.5, color=GRAY)
+body("版本 1.1.0", size=12, color=NAVY)
+body("2026-11-12  ·  macOS  ·  DSH Desktop", size=9.5, color=GRAY)
 body("Repository：github.com/paulpaulandjoy/dsh-cantonese-speech-public", size=9.5, color=GRAY)
-body("Release：github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.0.3", size=9.5, color=GRAY)
+body("Release：github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.1.0", size=9.5, color=GRAY)
 doc.add_paragraph().paragraph_format.space_after = Pt(8)
 note(
     "開始前最重要的一件事",
@@ -408,8 +408,8 @@ make_table(
     [
         ("Plugin", "粵語朗讀回覆（Cantonese speech replies）"),
         ("GitHub repo", "paulpaulandjoy/dsh-cantonese-speech-public（Public）"),
-        ("最新版本", "v1.0.3（2026-11-11）"),
-        ("Release", "v1.0.3 — Documentation release"),
+        ("最新版本", "v1.1.0（2026-11-12）"),
+        ("Release", "v1.1.0 — Documentation release"),
         ("License", "MIT（Copyright 2026 Cheung Chi Sing）"),
         ("平台", "macOS + DSH Desktop"),
         ("聲音", "Sinji（香港粵語）、Samantha（英文）"),
@@ -467,6 +467,20 @@ note(
     "仍然不準就記下你點的位置，交給維護者調整 selector。",
 )
 
+heading("Web／手機版：Browser TTS（初版）", 2)
+body("如果 DSH 以 web profile 在瀏覽器使用，plugin 會改用 Browser TTS（Web Speech API）；聲音由開網頁的裝置播出，不是 Mac 的喇叭。")
+bullet("初版支援：手動 Play、手指選取文字、暫停／繼續、重讀、速度。")
+bullet("初版沒有自動朗讀；每次要按 ▶ 開始。")
+bullet("第一次 Play 需要用戶手勢，這是 iOS／瀏覽器 autoplay 限制。")
+bullet("粵語 voice 視乎裝置；如果沒有香港粵語，會 fallback 中文或系統預設。")
+bullet("Desktop profile 仍然用 macOS say；Web profile 用 Browser TTS。")
+note(
+    "怎樣分辨",
+    "Web 版 status 會回傳 mode: browser；Desktop 版回傳 mode: host。Browser TTS 不需要 /usr/bin/say，也不會把聲音送到 Mac。",
+    fill="EEF7EE",
+    title_color=RGBColor(0x2F, 0x6B, 0x3A),
+)
+
 # ---------- 3. install/share ----------
 heading("3. 安裝到新 Mac 與分享", 1)
 heading("系統要求", 2)
@@ -476,7 +490,7 @@ bullet("已安裝 voices：Sinji（中文香港）及 Samantha（英文美國）
 code_block("say -v '?' | grep -E 'Sinji|Samantha'")
 body("如果沒有聲音，去：系統設定 → 輔助使用 → 朗讀內容 → 系統聲音 → 管理聲音，下載上述兩個 voices。")
 heading("方法 A：用 Release zip（朋友最簡單）", 2)
-numbered("下載 Release 的 dsh-cantonese-speech-1.0.3.zip，解壓。", "取得檔案：")
+numbered("下載 Release 的 dsh-cantonese-speech-1.1.0.zip，解壓。", "取得檔案：")
 numbered("放到例如 ~/Downloads/dsh-cantonese-speech。", "位置：")
 numbered("DSH → Settings → Plugins → 找 Install bundle／安裝 bundle，選該資料夾。", "安裝：")
 numbered("如果 UI 沒有本機資料夾選項，對 agent 說下面那句。", "用 AI：")
@@ -502,7 +516,7 @@ make_table(
     [
         ("Repo", "一個項目連版本歷史；不只是一個資料夾"),
         ("Commit", "一次「存檔」，記錄改了甚麼"),
-        ("Tag", "一個固定版本標籤，例如 v1.0.3"),
+        ("Tag", "一個固定版本標籤，例如 v1.1.0"),
         ("Release", "以 tag 為基礎，附下載檔和版本說明"),
     ],
     widths=[3.2, 13.4],
@@ -553,11 +567,11 @@ code_block(
 )
 heading("新版 tag 與 Release", 2)
 code_block(
-    'git tag -a v1.0.3 -m "v1.0.3"\n'
-    "git push origin v1.0.3\n\n"
+    'git tag -a v1.1.0 -m "v1.1.0"\n'
+    "git push origin v1.1.0\n\n"
     "cd ..\n"
-    "zip -r dsh-cantonese-speech-1.0.3.zip dsh-cantonese-speech -x '*.DS_Store' 'dsh-cantonese-speech/.git/*'\n\n"
-    'gh release create v1.0.3 --title "v1.0.3" --notes "..." dsh-cantonese-speech-1.0.3.zip'
+    "zip -r dsh-cantonese-speech-1.1.0.zip dsh-cantonese-speech -x '*.DS_Store' 'dsh-cantonese-speech/.git/*'\n\n"
+    'gh release create v1.1.0 --title "v1.1.0" --notes "..." dsh-cantonese-speech-1.1.0.zip'
 )
 heading("如果沒有 AI／沒有 CLI", 2)
 body("可以用 GitHub Desktop：File → Add Local Repository → 選這個資料夾 → Commit → Push；或用 GitHub 網頁上載。完整步驟見 repo 的 GITHUB-DESKTOP.md。")
@@ -668,7 +682,7 @@ numbered("按 Commit changes。", "完成：")
 body("限制：網頁上載不適合大量檔案或刪除；版本歷史也較難看。少量文件更新可以。")
 heading("E. 建立 tag 與 Release（網頁）", 2)
 numbered("Repo → Releases → Draft a new release。", "Release：")
-numbered("Choose a tag → 輸入 v1.0.3 → Create new tag。", "Tag：")
+numbered("Choose a tag → 輸入 v1.1.0 → Create new tag。", "Tag：")
 numbered("填標題、說明，上載 zip。", "內容：")
 numbered("按 Publish release。Private repo 仍然只有你／collaborator 看到。", "發佈：")
 heading("F. 回滾", 2)
@@ -718,7 +732,7 @@ make_table(
         ("Repo", "項目＋版本歷史"),
         ("Commit", "一次存檔"),
         ("Branch", "平行版本；本專案主要用 main"),
-        ("Tag", "固定版本標籤，例如 v1.0.3"),
+        ("Tag", "固定版本標籤，例如 v1.1.0"),
         ("Release", "以 tag 為基礎的下載頁"),
         ("Private", "只有你和 collaborator 看到"),
         ("Public", "任何人有 link 都看到"),
@@ -729,7 +743,7 @@ make_table(
     widths=[3.8, 12.8],
 )
 body("Repo：https://github.com/paulpaulandjoy/dsh-cantonese-speech-public")
-body("Release：https://github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.0.3")
+body("Release：https://github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.1.0")
 body("GitHub CLI 文件：https://cli.github.com/manual/")
 body("GitHub Docs（容量）：https://docs.github.com/zh/repositories/creating-and-managing-repositories/repository-limits")
 
@@ -746,7 +760,7 @@ note(
     fill="EEF7EE",
     title_color=RGBColor(0x2F, 0x6B, 0x3A),
 )
-body("版本：v1.0.3  ·  2026-11-11  ·  这份指南应随每次功能更新。", size=9, color=GRAY, italic=True)
+body("版本：v1.1.0  ·  2026-11-12  ·  这份指南应随每次功能更新。", size=9, color=GRAY, italic=True)
 
 doc.save(OUT)
 print(f"Wrote {OUT}")

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — 2026-11-12
+
+- Added Browser TTS (Web Speech API) mode for the web profile, with audio on the device that opens the page.
+- Browser mode supports manual Play, text picking, pause/resume, replay and speed.
+- Initial browser release intentionally has no automatic reading.
+- Desktop profile continues to use macOS `say`.
+- Updated the human guide and README for the web/browser mode.
+
 ## 1.0.3 — 2026-11-11
 
 - Sanitized local macOS paths and account placeholders in the human guide.

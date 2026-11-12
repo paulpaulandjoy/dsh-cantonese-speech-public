@@ -208,6 +208,94 @@ html.dsh-speech-picking * {
       return elementText(el)
     }
 
+    const LATEST_SELECTORS = [
+      '[data-chat-flow-kind*="assistant" i]',
+      '.markdown',
+      '[class*="markdown" i]',
+      '[data-message-bubble]',
+      '[data-chat-node-key]',
+    ]
+
+    function browserCleanReply(raw) {
+      let text = String(raw ?? '')
+      text = text.replace(/```[\s\S]*?```/g, '\n')
+      text = text.replace(/~~~[\s\S]*?~~~/g, '\n')
+      text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      text = text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      text = text.replace(/<https?:\/\/[^>]*>/g, '')
+      text = text.replace(/https?:\/\/\S+/g, '')
+      text = text.replace(/`([^`]+)`/g, '$1')
+      text = text.replace(/^#{1,6}\s+/gm, '')
+      text = text.replace(/^\s*[-*+]\s+/gm, '')
+      text = text.replace(/^\s*\d+[.)]\s+/gm, '')
+      text = text.replace(/^\s*\|.*\|\s*$/gm, '')
+      text = text.replace(/[*_~#>|]/g, '')
+      text = text.replace(/[ \t]+\n/g, '\n')
+      return text.replace(/\n{3,}/g, '\n\n').trim()
+    }
+
+    function browserCleanSelection(raw) {
+      let text = String(raw ?? '').replace(/\r\n?/g, '\n')
+      text = text.replace(/<https?:\/\/[^>]*>/g, ' ')
+      text = text.replace(/https?:\/\/\S+/g, ' ')
+      text = text.replace(/[ \t]+/g, ' ')
+      text = text.replace(/ *\n */g, '\n')
+      return text.replace(/\n{3,}/g, '\n\n').trim()
+    }
+
+    function splitBrowserChunks(text) {
+      const result = []
+      for (const paragraph of String(text ?? '').split(/\n+/)) {
+        const sentences = paragraph
+          .split(/(?<=[。！？；!?;])\s*|(?<=\.)\s+/u)
+          .map((part) => part.trim())
+          .filter(Boolean)
+        for (const sentence of sentences) {
+          let rest = sentence
+          while (rest.length > 70) {
+            let cut = rest.lastIndexOf(' ', 70)
+            if (cut < 30) cut = 70
+            result.push(rest.slice(0, cut).trim())
+            rest = rest.slice(cut).trim()
+          }
+          if (rest !== '') result.push(rest)
+        }
+      }
+      return result.filter(Boolean)
+    }
+
+    function pickBrowserVoice(text, voices) {
+      const han = (text.match(/[\u3400-\u9fff]/g) ?? []).length
+      const preferences = han
+        ? ['zh-HK', 'yue-HK', 'zh-TW', 'zh-CN']
+        : ['en-US', 'en-GB', 'en-AU']
+      for (const prefix of preferences) {
+        const voice = voices.find(
+          (candidate) =>
+            typeof candidate.lang === 'string' &&
+            candidate.lang.toLowerCase().startsWith(prefix.toLowerCase()),
+        )
+        if (voice) return voice
+      }
+      if (han) {
+        return (
+          voices.find((candidate) => /sinji|粵|粤|cantonese/i.test(candidate.name ?? '')) ??
+          null
+        )
+      }
+      return voices.find((candidate) => /samantha|english/i.test(candidate.name ?? '')) ?? null
+    }
+
+    function latestAssistantText() {
+      for (const selector of LATEST_SELECTORS) {
+        const nodes = Array.from(document.querySelectorAll(selector)).filter(
+          (el) => el instanceof HTMLElement && elementText(el) !== '',
+        )
+        if (nodes.length > 0) return elementText(nodes[nodes.length - 1])
+      }
+      return ''
+    }
+
     let clickGuard = null
     function clearClickGuard() {
       if (clickGuard === null) return
@@ -257,6 +345,162 @@ html.dsh-speech-picking * {
           clearInterval(timer)
         }
       }, [])
+
+      const [browserStatus, setBrowserStatus] = useState('idle')
+      const [browserText, setBrowserText] = useState('')
+      const [browserSpeed, setBrowserSpeed] = useState(1)
+      const browserRef = useRef({
+        session: 0,
+        chunks: [],
+        index: 0,
+        raw: '',
+        kind: 'reply',
+        status: 'idle',
+        speed: 1,
+        utterance: null,
+      })
+      const browserVoices = useRef([])
+      const browserSpeakRef = useRef(() => {})
+      const browserModeRef = useRef(false)
+
+      useEffect(() => {
+        if (!('speechSynthesis' in window)) return
+        const load = () => {
+          browserVoices.current = window.speechSynthesis.getVoices()
+        }
+        load()
+        window.speechSynthesis.addEventListener?.('voiceschanged', load)
+        return () => {
+          window.speechSynthesis.removeEventListener?.('voiceschanged', load)
+          window.speechSynthesis.cancel()
+        }
+      }, [])
+
+      const speakBrowserChunk = (session) => {
+        const current = browserRef.current
+        if (session !== current.session || current.status !== 'speaking') return
+        if (current.index >= current.chunks.length) {
+          current.status = 'idle'
+          setBrowserStatus('idle')
+          return
+        }
+        const chunk = current.chunks[current.index]
+        const utterance = new window.SpeechSynthesisUtterance(chunk)
+        utterance.rate = current.speed
+        const voice = pickBrowserVoice(chunk, browserVoices.current)
+        if (voice) {
+          utterance.voice = voice
+          utterance.lang = voice.lang
+        } else {
+          utterance.lang = /[\u3400-\u9fff]/.test(chunk) ? 'zh-HK' : 'en-US'
+        }
+        utterance.onend = () => {
+          if (session !== current.session || current.status !== 'speaking') return
+          current.index += 1
+          speakBrowserChunk(session)
+        }
+        utterance.onerror = () => {
+          if (session !== current.session) return
+          current.status = 'idle'
+          setBrowserStatus('idle')
+        }
+        current.utterance = utterance
+        window.speechSynthesis.speak(utterance)
+      }
+
+      const speakBrowser = (raw, kind = 'reply') => {
+        if (
+          !('speechSynthesis' in window) ||
+          typeof window.SpeechSynthesisUtterance !== 'function'
+        ) {
+          setFailed(true)
+          return
+        }
+        const cleaned =
+          kind === 'selection' ? browserCleanSelection(raw) : browserCleanReply(raw)
+        const chunks = splitBrowserChunks(cleaned)
+        if (chunks.length === 0) return
+        try {
+          window.speechSynthesis.cancel()
+        } catch {
+          // Some browsers throw when there is no active utterance.
+        }
+        const current = browserRef.current
+        current.session += 1
+        current.chunks = chunks
+        current.index = 0
+        current.raw = raw
+        current.kind = kind
+        current.status = 'speaking'
+        current.speed = Number(browserSpeed) || 1
+        setBrowserText(cleaned)
+        setBrowserStatus('speaking')
+        setFailed(false)
+        speakBrowserChunk(current.session)
+      }
+      browserSpeakRef.current = speakBrowser
+
+      const pauseBrowser = () => {
+        const current = browserRef.current
+        if (current.status !== 'speaking') return
+        current.session += 1
+        current.status = 'paused'
+        try {
+          window.speechSynthesis.cancel()
+        } catch {
+          // Ignore an already-finished utterance.
+        }
+        setBrowserStatus('paused')
+      }
+
+      const resumeBrowser = () => {
+        const current = browserRef.current
+        if (current.status !== 'paused') return
+        current.status = 'speaking'
+        current.session += 1
+        setBrowserStatus('speaking')
+        speakBrowserChunk(current.session)
+      }
+
+      const stopBrowser = () => {
+        const current = browserRef.current
+        current.session += 1
+        current.status = 'idle'
+        current.chunks = []
+        current.index = 0
+        current.raw = ''
+        current.kind = 'reply'
+        try {
+          window.speechSynthesis.cancel()
+        } catch {
+          // Ignore.
+        }
+        setBrowserText('')
+        setBrowserStatus('idle')
+      }
+
+      const replayBrowser = () => {
+        const current = browserRef.current
+        if (current.raw === '') return
+        speakBrowser(current.raw, current.kind)
+      }
+
+      const setBrowserRate = (value) => {
+        const next = Number(value) || 1
+        setBrowserSpeed(next)
+        const current = browserRef.current
+        current.speed = next
+        if (current.status === 'speaking') {
+          current.session += 1
+          try {
+            window.speechSynthesis.cancel()
+          } catch {
+            // Ignore.
+          }
+          current.status = 'speaking'
+          speakBrowserChunk(current.session)
+        }
+      }
 
       useEffect(() => {
         if (!picking) return
@@ -350,6 +594,10 @@ html.dsh-speech-picking * {
           blockNextClick()
           clearHover()
           setPicking(false)
+          if (browserModeRef.current) {
+            browserSpeakRef.current(text, 'selection')
+            return
+          }
           setBusy(true)
           request('speak', undefined, { text })
             .then((next) => {
@@ -415,71 +663,113 @@ html.dsh-speech-picking * {
 
       const sessionId =
         typeof props?.sessionId === 'string' ? props.sessionId : undefined
-      const status = data?.status ?? 'idle'
-      const speed = data?.speed ?? 1
-      const canReplay = data?.canReplay === true
+      const browserMode = data?.mode === 'browser'
+      browserModeRef.current = browserMode
+      const status = browserMode ? browserStatus : (data?.status ?? 'idle')
+      const speed = browserMode ? browserSpeed : (data?.speed ?? 1)
+      const canReplay = browserMode ? browserText !== '' : data?.canReplay === true
       const hasLatest = data?.hasLatest === true
       const autoRead = data?.enabled === true
       const paused = status === 'paused'
       const playing = status === 'speaking'
       const active = status !== 'idle'
 
-      const speaker = h(
-        'button',
-        {
-          key: 'speaker',
-          type: 'button',
-          onClick: () => {
-            setPicking(false)
-            act(active ? 'stop' : 'toggle')
-          },
-          disabled: busy,
-          'aria-pressed': active ? undefined : autoRead,
-          'aria-label': active
-            ? '停止所有朗讀並重設'
-            : autoRead
-              ? '關閉自動朗讀'
-              : '開啟自動朗讀',
-          title: active
-            ? '停止所有朗讀並重設'
-            : autoRead
-              ? '自動朗讀：開（點擊關閉）'
-              : '自動朗讀：關（點擊開啟）',
-          style: {
-            ...iconStyle(busy),
-            color:
-              active || autoRead
-                ? 'var(--dsw-alias-label-primary)'
-                : 'var(--dsw-alias-label-secondary)',
-          },
-        },
-        active ? stopIcon() : speakerIcon(autoRead),
-      )
+      const speaker = browserMode
+        ? h(
+            'button',
+            {
+              key: 'speaker',
+              type: 'button',
+              onClick: () => {
+                setPicking(false)
+                if (active) stopBrowser()
+              },
+              disabled: busy || !active,
+              'aria-pressed': false,
+              'aria-label': active ? '停止此裝置朗讀' : '此裝置朗讀（請按播放）',
+              title: active
+                ? '停止此裝置朗讀'
+                : '此裝置朗讀：自動朗讀未啟用，請按 ▶ 開始',
+              style: {
+                ...iconStyle(busy || !active),
+                color: active
+                  ? 'var(--dsw-alias-label-primary)'
+                  : 'var(--dsw-alias-label-secondary)',
+              },
+            },
+            active ? stopIcon() : speakerIcon(true),
+          )
+        : h(
+            'button',
+            {
+              key: 'speaker',
+              type: 'button',
+              onClick: () => {
+                setPicking(false)
+                act(active ? 'stop' : 'toggle')
+              },
+              disabled: busy,
+              'aria-pressed': active ? undefined : autoRead,
+              'aria-label': active
+                ? '停止所有朗讀並重設'
+                : autoRead
+                  ? '關閉自動朗讀'
+                  : '開啟自動朗讀',
+              title: active
+                ? '停止所有朗讀並重設'
+                : autoRead
+                  ? '自動朗讀：開（點擊關閉）'
+                  : '自動朗讀：關（點擊開啟）',
+              style: {
+                ...iconStyle(busy),
+                color:
+                  active || autoRead
+                    ? 'var(--dsw-alias-label-primary)'
+                    : 'var(--dsw-alias-label-secondary)',
+              },
+            },
+            active ? stopIcon() : speakerIcon(autoRead),
+          )
 
-      const playDisabled = busy || (!playing && !paused && !hasLatest)
+      const playDisabled = browserMode
+        ? busy
+        : busy || (!playing && !paused && !hasLatest)
       const pause = h(
         'button',
         {
           key: 'pause',
           type: 'button',
           onClick: () => {
-            if (playing) act('pause')
-            else if (paused) act('resume')
-            else act('play', undefined, sessionId === undefined ? {} : { sessionId })
+            if (playing) {
+              if (browserMode) pauseBrowser()
+              else act('pause')
+            } else if (paused) {
+              if (browserMode) resumeBrowser()
+              else act('resume')
+            } else if (browserMode) {
+              const text = latestAssistantText()
+              if (text !== '') speakBrowser(text, 'reply')
+            } else {
+              act('play', undefined, sessionId === undefined ? {} : { sessionId })
+            }
           },
           disabled: playDisabled,
           'aria-label': playing
             ? '暫停朗讀'
             : paused
               ? '繼續朗讀'
-              : '播放最新回覆',
+              : browserMode
+                ? '用此裝置播放最新回覆'
+                : '播放最新回覆',
           title: playing
             ? '暫停朗讀'
             : paused
               ? '繼續朗讀目前內容'
-              : hasLatest
-                ? '播放最新回覆'
-                : '暫時沒有可播放的回覆',
+              : browserMode
+                ? '用此裝置讀最新回覆（Web Speech）'
+                : hasLatest
+                  ? '播放最新回覆'
+                  : '暫時沒有可播放的回覆',
           style: iconStyle(playDisabled),
         },
         playing ? '⏸' : '▶',
@@ -490,13 +780,18 @@ html.dsh-speech-picking * {
         {
           key: 'replay',
           type: 'button',
-          onClick: () => act('replay'),
+          onClick: () => {
+            if (browserMode) replayBrowser()
+            else act('replay')
+          },
           disabled: busy || !canReplay,
           'aria-label': '由頭重讀目前文字',
           title: canReplay
-            ? data?.truncated
-              ? '由頭重讀（原文字太長，只讀首 8,000 字）'
-              : '由頭重讀目前文字'
+            ? browserMode
+              ? '由頭重讀目前文字'
+              : data?.truncated
+                ? '由頭重讀（原文字太長，只讀首 8,000 字）'
+                : '由頭重讀目前文字'
             : '暫時沒有可重讀的文字',
           style: iconStyle(busy || !canReplay),
         },
@@ -508,8 +803,11 @@ html.dsh-speech-picking * {
         {
           key: 'speed',
           value: String(speed),
-          onChange: (event) => act('speed', event.target.value),
-          disabled: busy,
+          onChange: (event) => {
+            if (browserMode) setBrowserRate(event.target.value)
+            else act('speed', event.target.value)
+          },
+          disabled: busy && !browserMode,
           'aria-label': '朗讀速度',
           title: '朗讀速度：0.8 倍、1 倍、1.25 倍或 1.5 倍',
           style: {
@@ -522,7 +820,7 @@ html.dsh-speech-picking * {
             font: 'inherit',
             fontSize: 12,
             lineHeight: 1,
-            cursor: busy ? 'progress' : 'pointer',
+            cursor: busy && !browserMode ? 'progress' : 'pointer',
           },
         },
         ...[

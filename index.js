@@ -21,6 +21,24 @@ const MAX_BODY_BYTES = 128000
 const SPEEDS = new Set([0.8, 1, 1.25, 1.5])
 const ROUTE = '/local-speech'
 const SAY = process.env.DSH_SPEECH_SAY ?? '/usr/bin/say'
+let browserMode = process.env.DSH_PROFILE === 'web'
+let webServer = null
+
+function isLoopbackOrigin(origin) {
+  return /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(?::|\/|$)/.test(origin)
+}
+
+function isBrowserMode() {
+  if (process.env.DSH_PROFILE === 'web') return true
+  if (webServer !== null) {
+    try {
+      return !isLoopbackOrigin(webServer.getOrigin())
+    } catch {
+      // The server may not have bound its port yet.
+    }
+  }
+  return browserMode
+}
 
 let autoRead = true
 let speed = 1
@@ -197,6 +215,7 @@ function playFromStart(text, kind) {
 }
 
 function playSelection(text) {
+  if (isBrowserMode()) return false
   if (selectionText(text).trim() === '') return false
   return playFromStart(text, 'selection')
 }
@@ -214,7 +233,7 @@ function resume() {
 }
 
 function replay() {
-  if (lastText === '') return
+  if (isBrowserMode() || lastText === '') return
   playFromStart(lastText, lastKind)
 }
 
@@ -237,6 +256,7 @@ function stopAll() {
 }
 
 function playLatest(sessionId) {
+  if (isBrowserMode()) return false
   const text =
     typeof sessionId === 'string'
       ? latestReply.get(sessionId)
@@ -263,6 +283,7 @@ function playLatest(sessionId) {
 function snapshot() {
   return {
     ok: true,
+    mode: isBrowserMode() ? 'browser' : 'host',
     enabled: autoRead,
     status,
     speed,
@@ -327,6 +348,7 @@ function assistantText(message) {
 }
 
 function speakTurn(raw) {
+  if (isBrowserMode()) return
   if (!autoRead) return
   // A manual selection keeps the floor until it finishes or is stopped.
   if (lastKind === 'selection' && status !== 'idle') return
@@ -334,6 +356,8 @@ function speakTurn(raw) {
 }
 
 export function apply(ctx) {
+  webServer = ctx.webServer
+  browserMode = isBrowserMode()
   const pending = new Map()
 
   ctx.on('session/event', (session, event) => {

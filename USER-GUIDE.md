@@ -25,6 +25,14 @@
 | 速度 | 0.8×／1×／1.25×／1.5× | 即時套用 |
 | 食指 | 進入選取文字模式 | 可隨時再按取消 |
 
+## Web／手機版（Browser TTS，初版）
+
+- Web profile 使用 Browser TTS，聲音在開網頁的裝置。
+- **初版沒有自動朗讀**；要按 ▶ 手動播放。
+- 支援手動 Play、手指選取、暫停／繼續、重讀、速度。
+- 粵語 voice 視乎裝置；沒有時 fallback 中文或系統預設。
+- Desktop profile 仍然用 macOS `say`。
+
 ## 自動朗讀
 
 - 喇叭顯示黑色時：每個完成的助手回覆會自動讀出。
@@ -104,7 +112,7 @@ AI 應先讀 `README.md`、`USER-GUIDE.md`、`CHANGELOG.md`，再提出計劃；
 ## GitHub 與 Keychain（摘要）
 
 - Repo：`paulpaulandjoy/dsh-cantonese-speech-public`（Public）
-- Release：`v1.0.3`
+- Release：`v1.1.0`
 - License：MIT（Copyright 2026 Cheung Chi Sing）；Private 只影響誰能看到。
 - GitHub CLI token 存在 macOS 登入 Keychain：
   - App：應用程式 → 工具程式 → Keychain Access
@@ -130,4 +138,4 @@ git push
   - `feat: ...`
   - `fix: ...`
   - `docs: ...`
-- 穩定版本用 tag，例如 `v1.0.3`。
+- 穩定版本用 tag，例如 `v1.1.0`。

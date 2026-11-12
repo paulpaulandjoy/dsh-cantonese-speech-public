@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-11-12
+
+- Hardened the `/local-speech` route: `status` stays read-only, while play/speak/stop/pause/resume/replay/speed are loopback-only.
+- Remote browser TTS continues to work through the device's own speechSynthesis.
+- Updated SECURITY.md and the guide.
+
 ## 1.2.0 — 2026-11-12
 
 - Added automatic reading for Browser TTS on the web profile.

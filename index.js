@@ -40,6 +40,17 @@ function isBrowserMode() {
   return browserMode
 }
 
+function isLoopbackRequest(req) {
+  const address = req.socket?.remoteAddress
+  // Missing socket only occurs in direct handler tests; real HTTP always has one.
+  return (
+    address === undefined ||
+    address === '127.0.0.1' ||
+    address === '::1' ||
+    address === '::ffff:127.0.0.1'
+  )
+}
+
 let autoRead = true
 let speed = 1
 let status = 'idle' // idle | speaking | paused
@@ -426,6 +437,12 @@ export function apply(ctx) {
 
         if (method === 'GET' && action === 'status') {
           json(res, 200, snapshot())
+          return
+        }
+        // Mutating host actions may control the Mac's speakers. Keep them
+        // loopback-only; remote browsers use their own speechSynthesis.
+        if (!isLoopbackRequest(req)) {
+          json(res, 403, { ok: false, error: 'Local actions only' })
           return
         }
         if (method !== 'POST') {

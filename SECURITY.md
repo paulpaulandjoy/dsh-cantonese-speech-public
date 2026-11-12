@@ -26,9 +26,10 @@ but reports will be reviewed in good faith.
 - The desktop profile uses macOS `/usr/bin/say`.
 - The web profile uses the browser's `speechSynthesis` API; speech is generated
   on the device that opens the page.
-- The optional `/local-speech` HTTP route is a local convenience endpoint. It has
-  a same-origin check, but it is **not a general authentication boundary**. Do not
-  expose the DSH web server to an untrusted network.
+- The optional `/local-speech` HTTP route is a local convenience endpoint.
+  `status` is read-only; all mutating actions (`play`, `speak`, `stop`, `pause`,
+  `resume`, `replay`, `speed`) are restricted to loopback requests. A same-origin
+  check also applies. Do not expose the DSH web server to an untrusted network.
 - The DSH web URL may contain an access token. Do not share the full tokenized URL
   in screenshots, issues, chat messages, or public repositories.
 
@@ -47,9 +48,9 @@ but reports will be reviewed in good faith.
 
 ## Known limitations
 
-- The `/local-speech` route can be reached by local processes that can connect to
-  the DSH web server; the same-origin check is not a substitute for network
-  isolation.
+- Local processes on the same machine can still reach the loopback-only actions;
+  this is not a substitute for operating-system account security. Remote browser
+  TTS uses the device's `speechSynthesis` and does not call the mutating route.
 - Browser speech synthesis availability, voices, and autoplay behaviour depend on
   the device and browser.
 - This project is provided under the MIT License, without warranty. See

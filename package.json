@@ -1,6 +1,6 @@
 {
   "name": "@local/cantonese-speech",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "macOS local speech for DSH Desktop: reads replies or selected page text with Cantonese and English voices.",

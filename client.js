@@ -349,6 +349,7 @@ html.dsh-speech-picking * {
       const [browserStatus, setBrowserStatus] = useState('idle')
       const [browserText, setBrowserText] = useState('')
       const [browserSpeed, setBrowserSpeed] = useState(1)
+      const [browserAuto, setBrowserAuto] = useState(false)
       const browserRef = useRef({
         session: 0,
         chunks: [],
@@ -362,6 +363,8 @@ html.dsh-speech-picking * {
       const browserVoices = useRef([])
       const browserSpeakRef = useRef(() => {})
       const browserModeRef = useRef(false)
+      const browserAutoRef = useRef(false)
+      const lastAutoRef = useRef('')
 
       useEffect(() => {
         if (!('speechSynthesis' in window)) return
@@ -433,6 +436,7 @@ html.dsh-speech-picking * {
         current.kind = kind
         current.status = 'speaking'
         current.speed = Number(browserSpeed) || 1
+        lastAutoRef.current = cleaned
         setBrowserText(cleaned)
         setBrowserStatus('speaking')
         setFailed(false)
@@ -501,6 +505,73 @@ html.dsh-speech-picking * {
           speakBrowserChunk(current.session)
         }
       }
+
+      const toggleBrowserAuto = () => {
+        const next = !browserAutoRef.current
+        browserAutoRef.current = next
+        setBrowserAuto(next)
+        try {
+          window.localStorage.setItem('dsh-browser-auto', next ? 'on' : 'off')
+        } catch {
+          // Private browsing can block localStorage.
+        }
+        if (next) {
+          lastAutoRef.current = browserCleanReply(latestAssistantText())
+          speakBrowser('自動朗讀已開啟', 'reply')
+        }
+      }
+
+      useEffect(() => {
+        browserAutoRef.current = browserAuto
+      }, [browserAuto])
+
+      useEffect(() => {
+        if (data?.mode !== 'browser' || !browserAuto) return
+        const flow =
+          document.querySelector('[data-chat-flow]') ||
+          document.querySelector('[data-chat-node-key]')?.parentElement ||
+          document.body
+        if (flow === null) return
+        let timer = 0
+        let candidate = browserCleanReply(latestAssistantText())
+        let disposed = false
+
+        const schedule = (delay) => {
+          window.clearTimeout(timer)
+          timer = window.setTimeout(check, delay)
+        }
+
+        const check = () => {
+          if (disposed || !browserAutoRef.current) return
+          if (document.querySelector('[data-chat-running]') !== null) {
+            schedule(800)
+            return
+          }
+          if (browserRef.current.status !== 'idle') {
+            schedule(800)
+            return
+          }
+          const raw = latestAssistantText()
+          const text = browserCleanReply(raw)
+          if (text === '') return
+          if (text !== candidate) {
+            candidate = text
+            schedule(700)
+            return
+          }
+          if (text === lastAutoRef.current) return
+          lastAutoRef.current = text
+          browserSpeakRef.current(raw, 'reply')
+        }
+
+        const observer = new MutationObserver(() => schedule(1000))
+        observer.observe(flow, { childList: true, subtree: true, characterData: true })
+        return () => {
+          disposed = true
+          observer.disconnect()
+          window.clearTimeout(timer)
+        }
+      }, [data?.mode, browserAuto])
 
       useEffect(() => {
         if (!picking) return
@@ -683,21 +754,29 @@ html.dsh-speech-picking * {
               onClick: () => {
                 setPicking(false)
                 if (active) stopBrowser()
+                else toggleBrowserAuto()
               },
-              disabled: busy || !active,
-              'aria-pressed': false,
-              'aria-label': active ? '停止此裝置朗讀' : '此裝置朗讀（請按播放）',
+              disabled: busy,
+              'aria-pressed': active ? undefined : browserAuto,
+              'aria-label': active
+                ? '停止此裝置朗讀'
+                : browserAuto
+                  ? '關閉此裝置自動朗讀'
+                  : '開啟此裝置自動朗讀',
               title: active
                 ? '停止此裝置朗讀'
-                : '此裝置朗讀：自動朗讀未啟用，請按 ▶ 開始',
+                : browserAuto
+                  ? '此裝置自動朗讀：開（點擊關閉）'
+                  : '此裝置自動朗讀：關（點擊開啟）',
               style: {
-                ...iconStyle(busy || !active),
-                color: active
-                  ? 'var(--dsw-alias-label-primary)'
-                  : 'var(--dsw-alias-label-secondary)',
+                ...iconStyle(busy),
+                color:
+                  active || browserAuto
+                    ? 'var(--dsw-alias-label-primary)'
+                    : 'var(--dsw-alias-label-secondary)',
               },
             },
-            active ? stopIcon() : speakerIcon(true),
+            active ? stopIcon() : speakerIcon(browserAuto),
           )
         : h(
             'button',

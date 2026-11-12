@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-11-12
+
+- Added automatic reading for Browser TTS on the web profile.
+- Auto-read is off on each page load; tapping the speaker enables it and speaks a short confirmation to unlock browser speech.
+- Speaker becomes a stop/reset control during playback.
+- Manual Play, picking, pause/resume, replay and speed remain available.
+- Updated the guide and README for browser auto-read.
+
 ## 1.1.0 — 2026-11-12
 
 - Added Browser TTS (Web Speech API) mode for the web profile, with audio on the device that opens the page.

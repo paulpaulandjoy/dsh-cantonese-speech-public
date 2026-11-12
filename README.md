@@ -69,11 +69,13 @@ say -v '?' | grep -E 'Sinji|Samantha'
 ## Web／手機版（Browser TTS）
 
 - 在 **web profile** 使用時，plugin 會自動用 Browser TTS（Web Speech API），聲音由開網頁的裝置播出，不經 Mac 的 `say`。
-- **初版只支援手動 Play**：按 ▶ 讀最新回覆；未提供自動朗讀。
-- 支援手指選取文字、暫停／繼續、重讀、速度。
+- **支援自動朗讀**：按喇叭開啟；回覆穩定後會自動讀出。
+- 自動朗讀預設每次開頁關閉；第一次按喇叭開啟時會讀一句確認，並解鎖 browser speech。
+- 喇叭黑色＝自動朗讀開；禁止喇叭＝關；播放中變黑色方塊＝停止及重設。
+- 支援手動 Play、手指選取文字、暫停／繼續、重讀、速度。
 - 粵語 voice 視乎裝置；沒有時會 fallback 中文或系統預設。
 - Desktop profile 仍然用 macOS `say`。
-- Web 版第一次播放需要按一下 Play，這是瀏覽器 autoplay 限制。
+- iOS autoplay 可能仍要求手勢；如果冇聲，先按一次喇叭或 ▶。
 
 ## 版本控制
 

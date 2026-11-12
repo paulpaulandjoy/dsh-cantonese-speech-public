@@ -24,7 +24,8 @@
     "USER-GUIDE.pdf",
     "USER-GUIDE.docx",
     "scripts/*.py",
-    "LICENSE"
+    "LICENSE",
+    "SECURITY.md"
   ],
   "dsh": {
     "bundle": {

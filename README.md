@@ -112,6 +112,10 @@ git clone https://github.com/paulpaulandjoy/dsh-cantonese-speech-public.git
 - 改功能時只指出要改的檔案和行為，不要重貼全部 code。
 - 用 GitHub commit／tag／Release 記錄版本，而不是靠聊天記錄。
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for the security model, reporting process and hardening advice.
+
 ## License
 
 MIT License，Copyright (c) 2026 **Cheung Chi Sing**。

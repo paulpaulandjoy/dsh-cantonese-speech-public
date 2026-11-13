@@ -1,8 +1,8 @@
 # 粵語朗讀回覆（Cantonese speech replies）
 
-DSH Desktop 的 macOS 本機朗讀外掛：自動讀出助手回覆，或用食指按鈕選取頁面上任何文字朗讀。
+DSH Desktop 的 macOS 本機朗讀外掛：自動讀出助手回覆，或用食指按鈕選取頁面上任何文字朗讀；Sidebar 嘅 Markdown、純文字、PDF 同 Office 文件都讀得。
 
-> **Repo 狀態：Private · MIT License。**
+> **Repo 狀態：Public · MIT License。**
 > GitHub：<https://github.com/paulpaulandjoy/dsh-cantonese-speech-public>
 > Copyright (c) 2026 Cheung Chi Sing · 見 [LICENSE](LICENSE)。
 
@@ -15,6 +15,9 @@ DSH Desktop 的 macOS 本機朗讀外掛：自動讀出助手回覆，或用食�
 - 播放中喇叭按鈕變成停止／重設；重置後保留原本自動朗讀開關。
 - 獨立的 Play 按鈕：讀當前 session 最新一個已完成回覆；播放中可暫停／繼續。
 - 重讀目前文字、0.8×／1×／1.25×／1.5× 速度。
+- 朗讀中的句子有粗體紅色底線（不遮字），一眼看到讀到哪裡。
+- ↓ 跟隨朗讀：平時黑色（唔會跳、唔會自動翻頁）；按一下變紅，即時跳去朗讀位置並跟隨自動翻頁；再按取消。
+- Sidebar 文件朗讀：Markdown、純文字／code、PDF、Office（docx／pptx）都支援；按空白由頭讀全篇，按段落讀該段。
 - 食指按鈕：點選訊息、code block、段落或側欄文字朗讀。
 - 中文用香港粵語 `Sinji`，英文用 `Samantha`；逐句選聲。
 - 全部在本機執行，不上傳文字、不呼叫模型，沒有額外 token。
@@ -62,9 +65,12 @@ say -v '?' | grep -E 'Sinji|Samantha'
 - **喇叭**：開／關自動朗讀；播放中變成黑色方塊，按一下停止並重設。
 - **▶／⏸**：沒有播放時讀最新回覆；播放中暫停；暫停中繼續。
 - **↻**：重讀目前文字。
+- **↓**：跟隨朗讀開關；黑色＝關，紅色＝開。開啟時會跳去正在朗讀的句子，讀到接近頁尾會自動翻頁。
+- **Sidebar 文件**：打開 md／txt／code／PDF／Office 後按食指；按空白由第一句讀全篇，按段落只讀該段。
 - **速度**：0.8×、1×、1.25×、1.5×。
 - **食指**：按一下進入選取模式，hover 會高亮範圍，按文字朗讀；Esc／右鍵取消。
-- 只讀 DSH 頁面內 DOM 文字；PDF canvas、圖片內文字、跨 origin iframe 讀不到。
+- 讀 DSH 頁面內可選文字：對話、Sidebar 嘅 Markdown、純文字、PDF 文字層同 Office 預覽。
+- Excel、HTML 預覽、圖片、掃描 PDF（冇文字層）同跨 origin iframe 讀不到；任意外部網站亦刻意唔支援，保障私隱。
 
 ## Web／手機版（Browser TTS）
 
@@ -72,7 +78,8 @@ say -v '?' | grep -E 'Sinji|Samantha'
 - **支援自動朗讀**：按喇叭開啟；回覆穩定後會自動讀出。
 - 自動朗讀預設每次開頁關閉；第一次按喇叭開啟時會讀一句確認，並解鎖 browser speech。
 - 喇叭黑色＝自動朗讀開；禁止喇叭＝關；播放中變黑色方塊＝停止及重設。
-- 支援手動 Play、手指選取文字、暫停／繼續、重讀、速度。
+- 支援手動 Play、手指選取文字、暫停／繼續、重讀、速度，以及 Sidebar 文件朗讀。
+- 同樣有粗體紅色底線標示正在朗讀的句子，以及 ↓ 跟隨朗讀位置／自動翻頁。
 - 粵語 voice 視乎裝置；沒有時會 fallback 中文或系統預設。
 - Desktop profile 仍然用 macOS `say`。
 - iOS autoplay 可能仍要求手勢；如果冇聲，先按一次喇叭或 ▶。

@@ -306,7 +306,7 @@ def page_field(paragraph, field):
 # ---------- header / footer ----------
 header_p = section.header.paragraphs[0]
 header_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-hr = header_p.add_run("DSH 粵語朗讀外掛  ·  使用者與 AI 協作指南  ·  v1.2.1")
+hr = header_p.add_run("DSH 粵語朗讀外掛  ·  使用者與 AI 協作指南  ·  v1.4.0")
 set_run(hr, size=8, color=GRAY)
 para_bottom_border(header_p, "D8E0E6", 6)
 
@@ -348,10 +348,10 @@ r = p4.add_run("給人類看的完整版  ·  可以照著做，也可以交給 
 set_run(r, size=9.5, color=RGBColor(0xBF, 0xD6, 0xE5))
 
 doc.add_paragraph().paragraph_format.space_after = Pt(18)
-body("版本 1.2.1", size=12, color=NAVY)
-body("2026-11-12  ·  macOS  ·  DSH Desktop", size=9.5, color=GRAY)
-body("Repository：github.com/paulpaulandjoy/dsh-cantonese-speech-public", size=9.5, color=GRAY)
-body("Release：github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.2.1", size=9.5, color=GRAY)
+body("版本 1.4.0", size=12, color=NAVY)
+body("2026-11-13  ·  macOS  ·  DSH Desktop", size=9.5, color=GRAY)
+body("Repository：github.com/<你的 GitHub 帳號>/dsh-cantonese-speech", size=9.5, color=GRAY)
+body("Release：github.com/<你的 GitHub 帳號>/dsh-cantonese-speech/releases/tag/v1.4.0", size=9.5, color=GRAY)
 doc.add_paragraph().paragraph_format.space_after = Pt(8)
 note(
     "開始前最重要的一件事",
@@ -379,7 +379,7 @@ note(
 heading("目錄", 2)
 contents = [
     ("1", "專案現況與 30 秒快速開始"),
-    ("2", "日常操作：五個按鈕"),
+    ("2", "日常操作：六個按鈕"),
     ("3", "安裝到新 Mac 與分享"),
     ("4", "GitHub 版本管理與 Keychain"),
     ("5", "與 AI 合作：給甚麼、怎樣驗收"),
@@ -407,9 +407,9 @@ make_table(
     ["項目", "現況"],
     [
         ("Plugin", "粵語朗讀回覆（Cantonese speech replies）"),
-        ("GitHub repo", "paulpaulandjoy/dsh-cantonese-speech-public（Public）"),
-        ("最新版本", "v1.2.1（2026-11-12）"),
-        ("Release", "v1.2.1 — Documentation release"),
+        ("GitHub repo", "<你的 GitHub 帳號>/dsh-cantonese-speech（Private）"),
+        ("最新版本", "v1.4.0（2026-11-13）"),
+        ("Release", "v1.4.0 — Sidebar 文件朗讀"),
         ("License", "MIT（Copyright 2026 Cheung Chi Sing）"),
         ("平台", "macOS + DSH Desktop"),
         ("聲音", "Sinji（香港粵語）、Samantha（英文）"),
@@ -430,14 +430,15 @@ note(
 )
 
 # ---------- 2. controls ----------
-heading("2. 日常操作：五個按鈕", 1)
-body("按鈕都在輸入框左邊，順序是：喇叭、播放／暫停、重讀、速度、食指。")
+heading("2. 日常操作：六個按鈕", 1)
+body("按鈕都在輸入框左邊，順序是：喇叭、播放／暫停、重讀、↓ 跟隨朗讀、速度、食指。")
 make_table(
     ["按鈕", "平時", "播放中／暫停中"],
     [
         ("喇叭", "開／關自動朗讀；黑色＝開，禁止喇叭＝關", "黑色方塊：停止所有朗讀並重設"),
         ("▶／暫停", "▶ 讀當前 session 最新一個已完成回覆", "暫停；暫停後變 ▶ 繼續"),
-        ("↻", "重讀目前文字；冇文字時變灰", "重讀目前文字"),
+        ("↻ 重讀", "重讀目前文字；冇文字時變灰", "重讀目前文字"),
+        ("↓", "黑色＝唔跟隨；按一下變紅", "跳去朗讀位置並自動翻頁；再按取消"),
         ("速度", "0.8×／1×／1.25×／1.5×", "即時套用；會重播目前句子"),
         ("食指", "進入選取文字模式", "可再按取消"),
     ],
@@ -454,6 +455,25 @@ bullet("沒有播放時按 ▶：由頭讀當前 session 最新一個已完成�
 bullet("播放中按 暫停：暫停。暫停中按 ▶：繼續目前內容，不是重讀最新。")
 bullet("手動 Play 不會改動自動朗讀開關：禁止喇叭時只讀一次，讀完仍然禁止。")
 bullet("如果還沒有已完成回覆，▶ 會變灰。")
+heading("朗讀位置：粗體紅色底線與 ↓ 跟隨鍵", 2)
+bullet("朗讀中的句子會顯示粗體紅色底線；文字本身不會被色塊遮住，仍然清晰可讀。")
+bullet("底線隨朗讀逐句移動，一路聽一路跟就知讀到邊一句。")
+bullet("↓ 跟隨鍵平時是黑色：唔會自動跳，亦唔會自動捲動。")
+bullet("按一下變紅色：即時跳去正在朗讀的句子，並開啟跟隨。")
+bullet("跟隨時句子接近畫面底部，會平滑捲到畫面上方約 1/3，做到自動翻頁。")
+bullet("再按一下變回黑色：停止跟隨，朗讀繼續。")
+bullet("每次新朗讀（自動、▶、↻、選取）都會重設做黑色；暫停／繼續會保留。")
+bullet("暫停時底線留在目前句子；停止、讀完或出錯就會自動清除。")
+bullet("Desktop（macOS say）與 Web（Browser TTS）兩種模式都支援；若訊息重新渲染，底線會自動補回。")
+heading("Sidebar 文件朗讀（md／純文字／PDF／Office）", 2)
+body("右邊 Sidebar 預覽 Markdown、純文字／code、PDF 或 Office（docx／pptx）時，食指同樣可用。")
+bullet("Hover 空白位：框住整份文件；按空白位：由第一句開始讀全篇。")
+bullet("按段落／code block：只讀該段。")
+bullet("PDF 按某頁文字：由該頁開始，讀到頁尾會自動接下一頁。")
+bullet("Markdown 會跳過開頭 YAML frontmatter，唔會讀 metadata，正文保持原本字體大小。")
+bullet("PDF／Office 逐頁按需要建立文字層，第一次可能要等一兩秒；上限 8,000 字。")
+bullet("紅色底線、↓ 跟隨鍵、自動翻頁喺 Sidebar 一樣有效。")
+bullet("Excel、HTML 預覽、圖片、掃描 PDF（冇文字層）讀不到；任意外部網站亦刻意唔支援，保障私隱。")
 heading("食指：選取任何文字朗讀", 2)
 numbered("按食指，按鈕閃爍，cursor 變十字。")
 numbered("移到文字上，會出現 2px 外框＋淡色底，顯示將會讀的範圍。")
@@ -472,7 +492,8 @@ body("如果 DSH 以 web profile 在瀏覽器使用，plugin 會改用 Browser T
 bullet("自動朗讀：按喇叭開啟；回覆穩定後會自動讀出。")
 bullet("自動朗讀預設每次開頁關閉；第一次按喇叭開啟時會讀一句確認，並解鎖 browser speech。")
 bullet("喇叭顯示黑色＝自動朗讀開；禁止喇叭＝關；播放中變黑色方塊＝停止及重設。")
-bullet("手動 Play、手指選取文字、暫停／繼續、重讀、速度仍然可用。")
+bullet("手動 Play、手指選取文字、暫停／繼續、重讀、速度，以及 Sidebar 文件朗讀仍然可用。")
+bullet("同樣有粗體紅色底線標示正在朗讀的句子，以及 ↓ 跟隨朗讀／自動翻頁。")
 bullet("iOS autoplay 可能仍要求手勢；如果冇聲，先按一次喇叭或 ▶。")
 bullet("粵語 voice 視乎裝置；如果沒有香港粵語，會 fallback 中文或系統預設。")
 bullet("Desktop profile 仍然用 macOS say；Web profile 用 Browser TTS。")
@@ -493,7 +514,7 @@ bullet("已安裝 voices：Sinji（中文香港）及 Samantha（英文美國）
 code_block("say -v '?' | grep -E 'Sinji|Samantha'")
 body("如果沒有聲音，去：系統設定 → 輔助使用 → 朗讀內容 → 系統聲音 → 管理聲音，下載上述兩個 voices。")
 heading("方法 A：用 Release zip（朋友最簡單）", 2)
-numbered("下載 Release 的 dsh-cantonese-speech-1.2.1.zip，解壓。", "取得檔案：")
+numbered("下載 Release 的 dsh-cantonese-speech-1.4.0.zip，解壓。", "取得檔案：")
 numbered("放到例如 ~/Downloads/dsh-cantonese-speech。", "位置：")
 numbered("DSH → Settings → Plugins → 找 Install bundle／安裝 bundle，選該資料夾。", "安裝：")
 numbered("如果 UI 沒有本機資料夾選項，對 agent 說下面那句。", "用 AI：")
@@ -519,7 +540,7 @@ make_table(
     [
         ("Repo", "一個項目連版本歷史；不只是一個資料夾"),
         ("Commit", "一次「存檔」，記錄改了甚麼"),
-        ("Tag", "一個固定版本標籤，例如 v1.2.1"),
+        ("Tag", "一個固定版本標籤，例如 v1.4.0"),
         ("Release", "以 tag 為基礎，附下載檔和版本說明"),
     ],
     widths=[3.2, 13.4],
@@ -570,11 +591,11 @@ code_block(
 )
 heading("新版 tag 與 Release", 2)
 code_block(
-    'git tag -a v1.2.1 -m "v1.2.1"\n'
-    "git push origin v1.2.1\n\n"
+    'git tag -a v1.4.0 -m "v1.4.0"\n'
+    "git push origin v1.4.0\n\n"
     "cd ..\n"
-    "zip -r dsh-cantonese-speech-1.2.1.zip dsh-cantonese-speech -x '*.DS_Store' 'dsh-cantonese-speech/.git/*'\n\n"
-    'gh release create v1.2.1 --title "v1.2.1" --notes "..." dsh-cantonese-speech-1.2.1.zip'
+    "zip -r dsh-cantonese-speech-1.4.0.zip dsh-cantonese-speech -x '*.DS_Store' 'dsh-cantonese-speech/.git/*'\n\n"
+    'gh release create v1.4.0 --title "v1.4.0" --notes "..." dsh-cantonese-speech-1.4.0.zip'
 )
 heading("如果沒有 AI／沒有 CLI", 2)
 body("可以用 GitHub Desktop：File → Add Local Repository → 選這個資料夾 → Commit → Push；或用 GitHub 網頁上載。完整步驟見 repo 的 GITHUB-DESKTOP.md。")
@@ -685,7 +706,7 @@ numbered("按 Commit changes。", "完成：")
 body("限制：網頁上載不適合大量檔案或刪除；版本歷史也較難看。少量文件更新可以。")
 heading("E. 建立 tag 與 Release（網頁）", 2)
 numbered("Repo → Releases → Draft a new release。", "Release：")
-numbered("Choose a tag → 輸入 v1.2.1 → Create new tag。", "Tag：")
+numbered("Choose a tag → 輸入 v1.4.0 → Create new tag。", "Tag：")
 numbered("填標題、說明，上載 zip。", "內容：")
 numbered("按 Publish release。Private repo 仍然只有你／collaborator 看到。", "發佈：")
 heading("F. 回滾", 2)
@@ -702,6 +723,9 @@ make_table(
         ("沒有聲音", "檢查音量／輸出；用 say -v '?' 確認 Sinji、Samantha；測 route。"),
         ("▶ 變灰", "當前 session 還沒有已完成回覆；等回覆完成。"),
         ("選取範圍不準", "看 hover 外框；改點訊息另一個位置或 code block；回報位置。"),
+        ("PDF 有字讀唔到", "PDF 文字層缺失或字型冇 Unicode 對應；掃描件要 OCR，暫未支援。"),
+        ("PDF 讀到頁尾停", "v1.4.0 起會接下一頁；停多數係到 8,000 字上限或下一頁未有文字層。"),
+        ("Sidebar 按空白冇反應", "確認係 Markdown／純文字／PDF／Office；Excel、HTML、圖片未支援。"),
         ("git push 問 username", "跑 gh auth status；確認 local credential helper；或用 GitHub Desktop。"),
         ("Homebrew 不能安裝", "不要 sudo chown；改用可攜版 gh，或 GitHub Desktop。"),
         ("PDF 過期", "改 DOCX 後重新 export PDF；或叫 AI 重新產生。"),
@@ -735,7 +759,7 @@ make_table(
         ("Repo", "項目＋版本歷史"),
         ("Commit", "一次存檔"),
         ("Branch", "平行版本；本專案主要用 main"),
-        ("Tag", "固定版本標籤，例如 v1.2.1"),
+        ("Tag", "固定版本標籤，例如 v1.4.0"),
         ("Release", "以 tag 為基礎的下載頁"),
         ("Private", "只有你和 collaborator 看到"),
         ("Public", "任何人有 link 都看到"),
@@ -745,8 +769,8 @@ make_table(
     ],
     widths=[3.8, 12.8],
 )
-body("Repo：https://github.com/paulpaulandjoy/dsh-cantonese-speech-public")
-body("Release：https://github.com/paulpaulandjoy/dsh-cantonese-speech-public/releases/tag/v1.2.1")
+body("Repo：https://github.com/<你的 GitHub 帳號>/dsh-cantonese-speech")
+body("Release：https://github.com/<你的 GitHub 帳號>/dsh-cantonese-speech/releases/tag/v1.4.0")
 body("GitHub CLI 文件：https://cli.github.com/manual/")
 body("GitHub Docs（容量）：https://docs.github.com/zh/repositories/creating-and-managing-repositories/repository-limits")
 
@@ -763,7 +787,7 @@ note(
     fill="EEF7EE",
     title_color=RGBColor(0x2F, 0x6B, 0x3A),
 )
-body("版本：v1.2.1  ·  2026-11-12  ·  这份指南应随每次功能更新。", size=9, color=GRAY, italic=True)
+body("版本：v1.4.0  ·  2026-11-13  ·  这份指南应随每次功能更新。", size=9, color=GRAY, italic=True)
 
 doc.save(OUT)
 print(f"Wrote {OUT}")

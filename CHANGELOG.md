@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.0 — 2026-11-13
+
+- Turned the locate button into a follow toggle with a down-arrow icon: black by default (no jump, no auto page-turn); pressing it turns red, jumps to the spoken sentence and follows it; pressing again stops following. Follow resets to off for every new reading.
+- Extended reading to the Sidebar document preview: Markdown, plain text/code, PDF and Office (PDF-backed) files. Picking a block reads that section; picking blank space reads the whole document from the top.
+- Markdown reading skips YAML frontmatter, so metadata is not read and the body keeps its normal size.
+- PDF reading now walks the text layer page by page: reading continues past the end of a page and builds each page's text layer on demand (up to 8,000 characters).
+- Fixed PDF characters being split or skipped: PDF.js positions every text span absolutely, so text is now read as continuous text instead of one fragment per span.
+- Replay keeps the picked sidebar/paragraph source, so replaying selected text keeps its red underline.
+- Excel, HTML previews and images have no readable text layer. Arbitrary external websites remain unsupported, for privacy.
+
+## 1.3.0 — 2026-11-13
+
+- Added a bold red underline beneath the sentence currently being spoken, so the reader can follow along without covering the text.
+- Works in both Desktop (macOS `say`) and browser (Web Speech) modes; the underline leaves the glyphs untouched.
+- Added a ⌖ locate button that scrolls straight back to the sentence being spoken after scrolling elsewhere.
+- The underline clears on stop, finish or error and is restored if the conversation re-renders.
+
 ## 1.2.1 — 2026-11-12
 
 - Hardened the `/local-speech` route: `status` stays read-only, while play/speak/stop/pause/resume/replay/speed are loopback-only.

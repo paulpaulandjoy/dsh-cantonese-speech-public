@@ -304,6 +304,10 @@ function snapshot() {
     truncated: lastTruncated,
     chunk: chunks.length === 0 ? 0 : Math.min(chunkIndex + 1, chunks.length),
     chunks: chunks.length,
+    currentText:
+      status === 'speaking' || status === 'paused'
+        ? (chunks[chunkIndex] ?? '')
+        : '',
   }
 }
 

@@ -148,6 +148,27 @@ html.dsh-speech-picking * {
       )
     }
 
+    function followIcon() {
+      return h(
+        'svg',
+        {
+          viewBox: '0 0 24 24',
+          width: 16,
+          height: 16,
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 1.9,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          'aria-hidden': true,
+          style: { display: 'block' },
+        },
+        h('path', { key: 'shaft', d: 'M12 3.5v12.5' }),
+        h('path', { key: 'head', d: 'm6.8 11.2 5.2 5.2 5.2-5.2' }),
+        h('path', { key: 'floor', d: 'M5 20.5h14' }),
+      )
+    }
+
     function elementText(el) {
       return String(el?.innerText ?? el?.textContent ?? '')
         .replace(/\u00a0/g, ' ')
@@ -182,6 +203,25 @@ html.dsh-speech-picking * {
       if (!(target instanceof Element)) return null
       if (target.closest('input, textarea, select, [contenteditable="true"]')) return null
 
+      // Sidebar document previews are one reading unit: a clicked block reads
+      // that section, while a click on blank space reads the whole document.
+      const preview = sidebarPreviewFor(target)
+      if (preview !== null) {
+        const doc = sidebarDocumentFor(preview)
+        // Only Markdown and plain text previews can be read; PDF/Office/image
+        // previews stay untouched instead of reading their toolbar labels.
+        if (doc === null) return null
+        const pre = target.closest('pre')
+        if (pre && isSaneElement(pre)) return pre
+        const block = target.closest(BLOCK_SELECTOR)
+        if (block && isSaneElement(block)) return block
+        const line = target.closest('[data-textpreview-line]')
+        if (line && isSaneElement(line)) return line
+        const page = target.closest('[data-pdf-page]')
+        if (page !== null) return page.querySelector('[data-pdf-text]') ?? page
+        return doc
+      }
+
       // A code block is its own reading unit, even inside a message.
       const pre = target.closest('pre')
       if (pre && isSaneElement(pre)) return pre
@@ -205,6 +245,102 @@ html.dsh-speech-picking * {
     }
 
     function extractText(el) {
+      return elementText(el)
+    }
+
+    /**
+     * Text used for a pick. Markdown frontmatter is a small metadata grid, not
+     * part of the prose, so a whole-document read starts at the body.
+     */
+    /**
+     * PDF.js lays its selectable text out as absolutely positioned spans, so
+     * innerText treats every span as a block and inserts a newline between
+     * characters. Read the raw text instead and only keep meaningful spaces.
+     */
+    function normalizePdfText(raw) {
+      return String(raw ?? '')
+        .replace(/\s+/g, ' ')
+        .replace(/(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])/g, '')
+        .replace(/\s+([，。！？；：、])/g, '$1')
+        .trim()
+    }
+
+    function pdfTextOf(el) {
+      const layers = el.matches('[data-pdf-text]')
+        ? [el]
+        : Array.from(el.querySelectorAll('[data-pdf-text]'))
+      const parts = []
+      for (const layer of layers) {
+        const text = normalizePdfText(layer.textContent ?? '')
+        if (text !== '') parts.push(text)
+      }
+      return parts.join('\n\n')
+    }
+
+    const PDF_READ_CHARS = 8000
+
+    function pdfPageHasText(page) {
+      const layer = page.querySelector('[data-pdf-text]')
+      return layer !== null && (layer.textContent ?? '').trim() !== ''
+    }
+
+    /** Render one lazily loaded page and wait until its text layer exists. */
+    function waitForPdfPageText(page) {
+      if (pdfPageHasText(page)) return Promise.resolve(true)
+      page.scrollIntoView({ block: 'center' })
+      return new Promise((resolve) => {
+        const deadline = Date.now() + 2500
+        const tick = () => {
+          if (pdfPageHasText(page)) return resolve(true)
+          if (Date.now() > deadline) return resolve(false)
+          window.setTimeout(tick, 60)
+        }
+        tick()
+      })
+    }
+
+    /**
+     * Read a PDF from the picked page onwards. Pages are rendered one at a
+     * time because the preview only builds a text layer near the viewport.
+     */
+    async function collectPdfText(startEl) {
+      const section =
+        startEl.closest('[data-pdf-preview]') ??
+        startEl.querySelector?.('[data-pdf-preview]') ??
+        startEl
+      const pages = Array.from(section.querySelectorAll('[data-pdf-page]'))
+      if (pages.length === 0) return pdfTextOf(section)
+      const picked = startEl.closest('[data-pdf-page]')
+      const startIndex = picked === null ? 0 : Math.max(0, pages.indexOf(picked))
+      const parts = []
+      let total = 0
+      for (const page of pages.slice(startIndex)) {
+        if (!pdfPageHasText(page)) await waitForPdfPageText(page)
+        const text = pdfTextOf(page)
+        if (text !== '') {
+          parts.push(text)
+          total += text.length + 2
+        }
+        if (total >= PDF_READ_CHARS) break
+      }
+      pages[startIndex]?.scrollIntoView({ block: 'start' })
+      return parts.join('\n\n').slice(0, PDF_READ_CHARS)
+    }
+
+    function readableText(el) {
+      if (!(el instanceof Element)) return ''
+      if (el.matches('[data-pdf-preview], [data-pdf-page], [data-pdf-text]')) {
+        return pdfTextOf(el)
+      }
+      if (el.matches('[data-document-markdown]')) {
+        const parts = []
+        for (const child of el.children) {
+          if (child.matches('[data-document-frontmatter]')) continue
+          const text = elementText(child)
+          if (text !== '') parts.push(text)
+        }
+        return parts.join('\n\n')
+      }
       return elementText(el)
     }
 
@@ -286,14 +422,292 @@ html.dsh-speech-picking * {
       return voices.find((candidate) => /samantha|english/i.test(candidate.name ?? '')) ?? null
     }
 
-    function latestAssistantText() {
+    function latestAssistantNode() {
       for (const selector of LATEST_SELECTORS) {
         const nodes = Array.from(document.querySelectorAll(selector)).filter(
           (el) => el instanceof HTMLElement && elementText(el) !== '',
         )
-        if (nodes.length > 0) return elementText(nodes[nodes.length - 1])
+        if (nodes.length > 0) {
+          const element = nodes[nodes.length - 1]
+          return { element, text: elementText(element) }
+        }
       }
-      return ''
+      return null
+    }
+
+    function latestAssistantText() {
+      return latestAssistantNode()?.text ?? ''
+    }
+
+    // ------------------------------------------------------------------
+    // Spoken-sentence highlight
+    //
+    // The spoken chunk is matched back to the rendered message and wrapped
+    // in an inline span with a bold red underline. Underlining leaves the
+    // glyphs untouched, unlike a background overlay.
+    // ------------------------------------------------------------------
+    const HL_ATTR = 'data-dsh-speech-hl'
+    const HL_COLOR = '#e11d48'
+
+    // Remembers what was last highlighted so the locate button can restore
+    // the mark if React re-rendered the message and dropped the wrapper.
+    const speechHighlight = { text: '', root: null }
+
+    function clearSpeechHighlight() {
+      for (const span of Array.from(document.querySelectorAll(`[${HL_ATTR}]`))) {
+        const parent = span.parentNode
+        if (parent === null) continue
+        while (span.firstChild !== null) parent.insertBefore(span.firstChild, span)
+        parent.removeChild(span)
+      }
+      speechHighlight.text = ''
+      speechHighlight.root = null
+    }
+
+    function normalizedSpeechText(value) {
+      // browserCleanReply strips these markdown markers, so the rendered DOM
+      // side skips them too and the spoken chunk stays locatable.
+      return String(value ?? '').replace(/[\s\u00a0*_~#>|]+/g, '')
+    }
+
+    function textIndexMap(root) {
+      const positions = []
+      let text = ''
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+      let node = walker.nextNode()
+      while (node !== null) {
+        const value = node.nodeValue ?? ''
+        for (let i = 0; i < value.length; i += 1) {
+          const char = value[i]
+          if (/[\s\u00a0*_~#>|]/.test(char)) continue
+          // The cleaner drops bare and angle-bracket URLs, so skip them here
+          // too; otherwise a chunk spanning a URL could not be located.
+          const url = /^https?:\/\/\S+/.exec(value.slice(i))
+          if (url !== null) {
+            i += url[0].length - 1
+            continue
+          }
+          text += char
+          positions.push({ node, offset: i })
+        }
+        node = walker.nextNode()
+      }
+      return { text, positions }
+    }
+
+    function findSpeechRange(root, chunk, fromIndex = 0) {
+      if (!(root instanceof Element) || !root.isConnected) return null
+      const needle = normalizedSpeechText(chunk)
+      if (needle === '') return null
+      const map = textIndexMap(root)
+      if (map.text === '') return null
+
+      const makeRange = (start, size) => {
+        const first = map.positions[start]
+        const last = map.positions[start + size - 1]
+        if (first === undefined || last === undefined) return null
+        const range = document.createRange()
+        range.setStart(first.node, first.offset)
+        range.setEnd(last.node, last.offset + 1)
+        return { range, end: start + size }
+      }
+
+      const from = Math.max(0, Math.min(fromIndex, map.text.length))
+      const exact = map.text.indexOf(needle, from)
+      if (exact >= 0) return makeRange(exact, needle.length)
+
+      // The spoken text drops URLs and markdown markers, so a chunk can differ
+      // from the rendered text in the middle. Anchor on its head and tail.
+      const anchorLen = Math.max(1, Math.ceil(needle.length / 2))
+      const headLen = Math.min(needle.length, 12, anchorLen)
+      const tailLen = Math.min(needle.length, 12, anchorLen)
+      const head = needle.slice(0, headLen)
+      const tail = needle.slice(-tailLen)
+      let headIndex = map.text.indexOf(head, from)
+      if (headIndex < 0) headIndex = map.text.indexOf(head)
+      if (headIndex >= 0) {
+        const tailFrom = headIndex + 1
+        const tailIndex = map.text.indexOf(tail, tailFrom)
+        const windowEnd = Math.min(
+          map.text.length,
+          headIndex + needle.length + tailLen + 120,
+        )
+        if (tailIndex >= tailFrom && tailIndex + tailLen <= windowEnd) {
+          const anchored = makeRange(headIndex, tailIndex + tailLen - headIndex)
+          if (anchored !== null) return anchored
+        }
+      }
+
+      // Last resort: a shorter prefix still points at the right sentence.
+      for (const size of [24, 16, 12, 8]) {
+        if (size >= needle.length) continue
+        const probe = needle.slice(0, size)
+        let index = map.text.indexOf(probe, from)
+        if (index < 0) index = map.text.indexOf(probe)
+        if (index < 0) continue
+        const prefix = makeRange(index, size)
+        if (prefix !== null) return prefix
+      }
+      return null
+    }
+
+    function createHighlightSpan() {
+      const span = document.createElement('span')
+      span.setAttribute(HL_ATTR, '')
+      span.style.fontWeight = '700'
+      span.style.background = 'transparent'
+      span.style.textDecorationLine = 'underline'
+      span.style.textDecorationColor = HL_COLOR
+      span.style.textDecorationThickness = '3px'
+      span.style.textUnderlineOffset = '4px'
+      return span
+    }
+
+    /**
+     * Wrap only the text nodes the range touches. Moving element nodes into a
+     * wrapper would restructure grids, tables and PDF text layers, which made
+     * the surrounding document inherit the wrong font or position.
+     */
+    function applySpeechHighlight(range) {
+      clearSpeechHighlight()
+      if (range === null) return null
+      const anchor =
+        range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+          ? range.commonAncestorContainer.parentElement
+          : range.commonAncestorContainer
+      if (!(anchor instanceof Element)) return null
+      const tasks = []
+      const walker = document.createTreeWalker(anchor, NodeFilter.SHOW_TEXT)
+      let node = walker.nextNode()
+      while (node !== null) {
+        if (range.intersectsNode(node)) {
+          const start =
+            node === range.startContainer ? range.startOffset : 0
+          const end =
+            node === range.endContainer ? range.endOffset : node.nodeValue.length
+          if (end > start) tasks.push({ node, start, end })
+        }
+        node = walker.nextNode()
+      }
+      let first = null
+      for (const task of tasks) {
+        if (!task.node.isConnected) continue
+        const length = task.node.nodeValue.length
+        const start = Math.max(0, Math.min(task.start, length))
+        const end = Math.max(start, Math.min(task.end, length))
+        if (end <= start) continue
+        const piece = document.createRange()
+        piece.setStart(task.node, start)
+        piece.setEnd(task.node, end)
+        const span = createHighlightSpan()
+        try {
+          piece.surroundContents(span)
+        } catch {
+          continue
+        }
+        if (first === null) first = span
+      }
+      return first
+    }
+
+    function highlightSpeechChunk(root, chunk, fromIndex = 0) {
+      // Remove the previous mark before locating, so the new range is computed
+      // against the clean message DOM.
+      clearSpeechHighlight()
+      if (!(root instanceof Element)) return fromIndex
+      const found = findSpeechRange(root, chunk, fromIndex)
+      if (found === null) return fromIndex
+      if (applySpeechHighlight(found.range) === null) return fromIndex
+      speechHighlight.text = String(chunk ?? '')
+      speechHighlight.root = root
+      return found.end
+    }
+
+    function revealSpeechHighlight() {
+      let span = document.querySelector(`[${HL_ATTR}]`)
+      if (span === null && speechHighlight.text !== '') {
+        const stored =
+          speechHighlight.root instanceof Element && speechHighlight.root.isConnected
+            ? speechHighlight.root
+            : null
+        const root = stored ?? latestAssistantNode()?.element ?? null
+        if (root !== null) {
+          const found = findSpeechRange(root, speechHighlight.text, 0)
+          if (found !== null) span = applySpeechHighlight(found.range)
+        }
+      }
+      if (span === null) return false
+      span.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+      return true
+    }
+
+    /** The internal scroller that owns an element, or null for the page. */
+    function scrollContainerOf(el) {
+      let node = el.parentElement
+      while (
+        node !== null &&
+        node !== document.body &&
+        node !== document.documentElement
+      ) {
+        const style = window.getComputedStyle(node)
+        const overflow = style.overflowY
+        if (
+          (overflow === 'auto' || overflow === 'scroll' || overflow === 'overlay') &&
+          node.scrollHeight > node.clientHeight + 8
+        ) {
+          return node
+        }
+        node = node.parentElement
+      }
+      return null
+    }
+
+    /**
+     * Keep the spoken sentence in view while follow mode is on. The sentence
+     * sits in the upper third of the pane, and scrolling only happens when it
+     * leaves the comfortable band, so the pane turns a page rather than
+     * creeping line by line.
+     */
+    function followSpeakPosition() {
+      const span = document.querySelector(`[${HL_ATTR}]`)
+      if (!(span instanceof Element)) return false
+      const container = scrollContainerOf(span)
+      const rect = span.getBoundingClientRect()
+      const view =
+        container === null
+          ? { top: 0, bottom: window.innerHeight, height: window.innerHeight }
+          : container.getBoundingClientRect()
+      if (view.height <= 0) return false
+      const bottomLimit = view.bottom - Math.max(56, view.height * 0.22)
+      const below = rect.bottom > bottomLimit
+      const above = rect.top < view.top + 8
+      if (!below && !above) return false
+      const delta = rect.top - view.top - view.height / 3
+      if (container === null) {
+        window.scrollTo({ top: window.scrollY + delta, behavior: 'smooth' })
+      } else {
+        container.scrollTo({
+          top: Math.max(0, container.scrollTop + delta),
+          behavior: 'smooth',
+        })
+      }
+      return true
+    }
+
+    // ------------------------------------------------------------------
+    // Sidebar document previews
+    // ------------------------------------------------------------------
+    const SIDEBAR_CONTENT_SELECTOR = '[data-textpreview-content]'
+    const SIDEBAR_DOC_SELECTOR =
+      '[data-document-markdown], [data-textpreview-plain], [data-pdf-preview]'
+
+    function sidebarPreviewFor(el) {
+      return el instanceof Element ? el.closest(SIDEBAR_CONTENT_SELECTOR) : null
+    }
+
+    function sidebarDocumentFor(preview) {
+      if (!(preview instanceof Element)) return null
+      return preview.querySelector(SIDEBAR_DOC_SELECTOR)
     }
 
     let clickGuard = null
@@ -327,22 +741,30 @@ html.dsh-speech-picking * {
 
       useEffect(() => {
         let live = true
+        let timer = 0
+        const schedule = (next) => {
+          window.clearTimeout(timer)
+          const active = next?.status === 'speaking' || next?.status === 'paused'
+          timer = window.setTimeout(load, active ? 700 : 1500)
+        }
         const load = () => {
           request('status')
             .then((next) => {
               if (!live) return
               setData(next)
               setFailed(false)
+              schedule(next)
             })
             .catch(() => {
-              if (live) setFailed(true)
+              if (!live) return
+              setFailed(true)
+              schedule(null)
             })
         }
         load()
-        const timer = setInterval(load, 1200)
         return () => {
           live = false
-          clearInterval(timer)
+          window.clearTimeout(timer)
         }
       }, [])
 
@@ -359,12 +781,33 @@ html.dsh-speech-picking * {
         status: 'idle',
         speed: 1,
         utterance: null,
+        root: null,
+        cursor: 0,
+        chunkStart: 0,
+        highlightIndex: -1,
       })
       const browserVoices = useRef([])
       const browserSpeakRef = useRef(() => {})
       const browserModeRef = useRef(false)
       const browserAutoRef = useRef(false)
       const lastAutoRef = useRef('')
+      const [follow, setFollow] = useState(false)
+      const followRef = useRef(false)
+      const hostSourceRef = useRef(null)
+      // The source of the last pick, kept after playback ends so ↻ can read
+      // the same sidebar document or paragraph again.
+      const pickerSourceRef = useRef(null)
+
+      const setFollowState = (next) => {
+        followRef.current = next
+        setFollow(next)
+      }
+
+      const toggleFollow = () => {
+        const next = !followRef.current
+        setFollowState(next)
+        if (next) revealSpeechHighlight()
+      }
 
       useEffect(() => {
         if (!('speechSynthesis' in window)) return
@@ -385,9 +828,21 @@ html.dsh-speech-picking * {
         if (current.index >= current.chunks.length) {
           current.status = 'idle'
           setBrowserStatus('idle')
+          clearSpeechHighlight()
+          setFollowState(false)
           return
         }
         const chunk = current.chunks[current.index]
+        if (current.index !== current.highlightIndex) {
+          current.highlightIndex = current.index
+          current.chunkStart = current.cursor
+        }
+        if (current.root instanceof Element && current.root.isConnected) {
+          current.cursor = highlightSpeechChunk(current.root, chunk, current.chunkStart)
+          if (followRef.current) followSpeakPosition()
+        } else {
+          clearSpeechHighlight()
+        }
         const utterance = new window.SpeechSynthesisUtterance(chunk)
         utterance.rate = current.speed
         const voice = pickBrowserVoice(chunk, browserVoices.current)
@@ -406,12 +861,14 @@ html.dsh-speech-picking * {
           if (session !== current.session) return
           current.status = 'idle'
           setBrowserStatus('idle')
+          clearSpeechHighlight()
+          setFollowState(false)
         }
         current.utterance = utterance
         window.speechSynthesis.speak(utterance)
       }
 
-      const speakBrowser = (raw, kind = 'reply') => {
+      const speakBrowser = (raw, kind = 'reply', sourceEl = null) => {
         if (
           !('speechSynthesis' in window) ||
           typeof window.SpeechSynthesisUtterance !== 'function'
@@ -428,6 +885,8 @@ html.dsh-speech-picking * {
         } catch {
           // Some browsers throw when there is no active utterance.
         }
+        clearSpeechHighlight()
+        setFollowState(false)
         const current = browserRef.current
         current.session += 1
         current.chunks = chunks
@@ -436,6 +895,10 @@ html.dsh-speech-picking * {
         current.kind = kind
         current.status = 'speaking'
         current.speed = Number(browserSpeed) || 1
+        current.root = sourceEl instanceof Element ? sourceEl : null
+        current.cursor = 0
+        current.chunkStart = 0
+        current.highlightIndex = -1
         lastAutoRef.current = cleaned
         setBrowserText(cleaned)
         setBrowserStatus('speaking')
@@ -474,11 +937,17 @@ html.dsh-speech-picking * {
         current.index = 0
         current.raw = ''
         current.kind = 'reply'
+        current.root = null
+        current.cursor = 0
+        current.chunkStart = 0
+        current.highlightIndex = -1
         try {
           window.speechSynthesis.cancel()
         } catch {
           // Ignore.
         }
+        clearSpeechHighlight()
+        setFollowState(false)
         setBrowserText('')
         setBrowserStatus('idle')
       }
@@ -486,7 +955,7 @@ html.dsh-speech-picking * {
       const replayBrowser = () => {
         const current = browserRef.current
         if (current.raw === '') return
-        speakBrowser(current.raw, current.kind)
+        speakBrowser(current.raw, current.kind, current.root)
       }
 
       const setBrowserRate = (value) => {
@@ -551,7 +1020,8 @@ html.dsh-speech-picking * {
             schedule(800)
             return
           }
-          const raw = latestAssistantText()
+          const node = latestAssistantNode()
+          const raw = node?.text ?? ''
           const text = browserCleanReply(raw)
           if (text === '') return
           if (text !== candidate) {
@@ -561,7 +1031,7 @@ html.dsh-speech-picking * {
           }
           if (text === lastAutoRef.current) return
           lastAutoRef.current = text
-          browserSpeakRef.current(raw, 'reply')
+          browserSpeakRef.current(raw, 'reply', node?.element ?? null)
         }
 
         const observer = new MutationObserver(() => schedule(1000))
@@ -572,6 +1042,75 @@ html.dsh-speech-picking * {
           window.clearTimeout(timer)
         }
       }, [data?.mode, browserAuto])
+
+      // Desktop (host) playback chunks inside the main process; the status
+      // snapshot exposes the chunk currently being spoken so the renderer can
+      // mark the same sentence in the conversation.
+      const hostHighlightRef = useRef({ chunk: 0, text: '', cursor: 0 })
+      const playbackStatusRef = useRef('idle')
+      const playbackChunkRef = useRef(0)
+
+      // A new reading always starts with follow off; pausing keeps it.
+      useEffect(() => {
+        if (data?.mode !== 'host') return
+        const next = data?.status ?? 'idle'
+        const previous = playbackStatusRef.current
+        const chunkNumber = Number(data?.chunk) || 0
+        const previousChunk = playbackChunkRef.current
+        if (next === 'idle') {
+          if (previous !== 'idle') {
+            setFollowState(false)
+            // Only drop the picked source when a reading actually ended; an
+            // idle poll must not clear a pick that is still being started.
+            hostSourceRef.current = null
+          }
+        } else if (previous === 'idle' || (chunkNumber === 1 && previousChunk !== 1)) {
+          setFollowState(false)
+          if (data?.source === 'reply') {
+            // A reply read owns the conversation again.
+            hostSourceRef.current = null
+            pickerSourceRef.current = null
+          }
+        }
+        playbackStatusRef.current = next
+        playbackChunkRef.current = chunkNumber
+      }, [data?.mode, data?.status, data?.chunk])
+
+      useEffect(() => {
+        if (data?.mode !== 'host') return
+        const live = data?.status === 'speaking' || data?.status === 'paused'
+        const text = typeof data?.currentText === 'string' ? data.currentText : ''
+        const state = hostHighlightRef.current
+        if (!live || text === '') {
+          if (state.text !== '') {
+            clearSpeechHighlight()
+            state.text = ''
+            state.cursor = 0
+          }
+          return
+        }
+        const chunkNumber = Number(data?.chunk) || 0
+        if (chunkNumber !== state.chunk) {
+          state.chunk = chunkNumber
+          if (chunkNumber <= 1) state.cursor = 0
+        }
+        if (state.text === text) return
+        const stored =
+          hostSourceRef.current instanceof Element && hostSourceRef.current.isConnected
+            ? hostSourceRef.current
+            : null
+        const root = stored ?? latestAssistantNode()?.element ?? null
+        state.text = text
+        state.cursor = root === null ? 0 : highlightSpeechChunk(root, text, state.cursor)
+        if (followRef.current) followSpeakPosition()
+      }, [data?.mode, data?.status, data?.currentText, data?.chunk])
+
+      useEffect(
+        () => () => {
+          clearSpeechHighlight()
+        },
+        [],
+      )
 
       useEffect(() => {
         if (!picking) return
@@ -653,8 +1192,14 @@ html.dsh-speech-picking * {
           }
 
           const container = findTextContainer(target)
-          const text = container === null ? '' : extractText(container)
-          if (container === null || text === '') {
+          if (container === null) {
+            event.preventDefault()
+            event.stopPropagation()
+            return
+          }
+          const pdfSection = container.closest('[data-pdf-preview]')
+          const text = pdfSection === null ? readableText(container) : ''
+          if (pdfSection === null && text === '') {
             event.preventDefault()
             event.stopPropagation()
             return
@@ -665,10 +1210,34 @@ html.dsh-speech-picking * {
           blockNextClick()
           clearHover()
           setPicking(false)
-          if (browserModeRef.current) {
-            browserSpeakRef.current(text, 'selection')
+
+          if (pdfSection !== null) {
+            setBusy(true)
+            collectPdfText(container)
+              .then((pdfText) => {
+                if (pdfText === '') return undefined
+                if (browserModeRef.current) {
+                  browserSpeakRef.current(pdfText, 'selection', pdfSection)
+                  return undefined
+                }
+                hostSourceRef.current = pdfSection
+                pickerSourceRef.current = pdfSection
+                return request('speak', undefined, { text: pdfText }).then((next) => {
+                  setData(next)
+                  setFailed(false)
+                })
+              })
+              .catch(() => setFailed(true))
+              .finally(() => setBusy(false))
             return
           }
+
+          if (browserModeRef.current) {
+            browserSpeakRef.current(text, 'selection', container)
+            return
+          }
+          hostSourceRef.current = container
+          pickerSourceRef.current = container
           setBusy(true)
           request('speak', undefined, { text })
             .then((next) => {
@@ -785,6 +1354,8 @@ html.dsh-speech-picking * {
               type: 'button',
               onClick: () => {
                 setPicking(false)
+                hostSourceRef.current = null
+                pickerSourceRef.current = null
                 act(active ? 'stop' : 'toggle')
               },
               disabled: busy,
@@ -826,9 +1397,12 @@ html.dsh-speech-picking * {
               if (browserMode) resumeBrowser()
               else act('resume')
             } else if (browserMode) {
-              const text = latestAssistantText()
-              if (text !== '') speakBrowser(text, 'reply')
+              const node = latestAssistantNode()
+              if (node !== null) speakBrowser(node.text, 'reply', node.element)
             } else {
+              hostSourceRef.current = null
+              pickerSourceRef.current = null
+              setFollowState(false)
               act('play', undefined, sessionId === undefined ? {} : { sessionId })
             }
           },
@@ -861,7 +1435,13 @@ html.dsh-speech-picking * {
           type: 'button',
           onClick: () => {
             if (browserMode) replayBrowser()
-            else act('replay')
+            else {
+              const selection = data?.source === 'selection'
+              hostSourceRef.current = selection ? pickerSourceRef.current : null
+              if (!selection) pickerSourceRef.current = null
+              setFollowState(false)
+              act('replay')
+            }
           },
           disabled: busy || !canReplay,
           'aria-label': '由頭重讀目前文字',
@@ -875,6 +1455,33 @@ html.dsh-speech-picking * {
           style: iconStyle(busy || !canReplay),
         },
         '↻',
+      )
+
+      const locateDisabled = busy || !active
+      const locate = h(
+        'button',
+        {
+          key: 'locate',
+          type: 'button',
+          onClick: () => {
+            if (active) toggleFollow()
+          },
+          disabled: locateDisabled,
+          'aria-pressed': follow,
+          'aria-label': follow
+            ? '取消跟隨朗讀位置及自動翻頁'
+            : '跳去朗讀位置並跟隨自動翻頁',
+          title: locateDisabled
+            ? '開始朗讀後可以跟隨朗讀位置'
+            : follow
+              ? '跟隨朗讀：開（點擊取消跟隨及自動翻頁）'
+              : '跟隨朗讀：關（點擊跳去朗讀位置並開啟自動翻頁）',
+          style: {
+            ...iconStyle(locateDisabled),
+            color: follow ? HL_COLOR : 'var(--dsw-alias-label-primary)',
+          },
+        },
+        followIcon(),
       )
 
       const rate = h(
@@ -952,6 +1559,7 @@ html.dsh-speech-picking * {
           speaker,
           pause,
           replay,
+          locate,
           rate,
           pick,
           picking

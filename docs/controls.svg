@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820">
+  <rect width="1400" height="820" fill="#f3f6f9"/>
+  <text x="70" y="70" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="30" font-weight="700" fill="#1f3a5f">粵語朗讀外掛 · 介面示意</text>
+  <text x="70" y="102" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="16" fill="#5c6b78">紅線跟住朗讀句子；↓ 跟隨鍵預設黑色，按一下變紅並自動翻頁</text>
+  <text x="70" y="790" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="12" fill="#8a97a3">介面示意圖，非實際畫面截圖</text>
+
+  <rect x="70" y="140" width="820" height="300" rx="14" fill="#ffffff" stroke="#d7e0e8"/>
+  <text x="100" y="180" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="18" font-weight="700" fill="#315d84">對話朗讀</text>
+  <text x="100" y="220" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="19" fill="#23313d">外掛會自動朗讀完成嘅回覆，</text>
+  <text x="100" y="254" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="19" font-weight="700" fill="#23313d">並用粗體紅色底線標示正在朗讀的句子。</text>
+  <line x1="100" y1="264" x2="596" y2="264" stroke="#e11d48" stroke-width="4" stroke-linecap="round"/>
+  <text x="100" y="294" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="19" fill="#23313d">讀到頁尾會自動接下一頁。</text>
+
+  <g font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="13" fill="#5c6b78">
+    <rect x="100" y="340" width="36" height="36" rx="9" fill="#fff" stroke="#cfd9e2"/>
+    <path d="M108 350h5l5-4v24l-5-4h-5a1 1 0 0 1-1-1v-14a1 1 0 0 1 1-1Z" fill="#23313d"/>
+    <path d="M123 350a6 6 0 0 1 0 12" fill="none" stroke="#23313d" stroke-width="2" stroke-linecap="round"/>
+    <text x="100" y="394">自動</text>
+
+    <rect x="156" y="340" width="36" height="36" rx="9" fill="#fff" stroke="#cfd9e2"/>
+    <path d="M169 348l12 10-12 10z" fill="#23313d"/>
+    <text x="156" y="394">播放</text>
+
+    <rect x="212" y="340" width="36" height="36" rx="9" fill="#fff" stroke="#cfd9e2"/>
+    <path d="M237 352a8 8 0 1 0 1 8" fill="none" stroke="#23313d" stroke-width="2" stroke-linecap="round"/>
+    <path d="m236 349 6 3-6 3z" fill="#23313d"/>
+    <text x="212" y="394">重讀</text>
+
+    <rect x="268" y="340" width="36" height="36" rx="9" fill="#fff" stroke="#e11d48"/>
+    <path d="M286 348v13" fill="none" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="m280 356 6 6 6-6" fill="none" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M279 366h14" fill="none" stroke="#e11d48" stroke-width="2.2" stroke-linecap="round"/>
+    <text x="262" y="394" fill="#e11d48" font-weight="700">跟隨：開</text>
+
+    <rect x="330" y="340" width="70" height="36" rx="9" fill="#fff" stroke="#cfd9e2"/>
+    <text x="342" y="363" font-size="13" fill="#23313d">1× ▾</text>
+    <text x="332" y="394">速度</text>
+
+    <rect x="420" y="340" width="36" height="36" rx="9" fill="#fff" stroke="#cfd9e2"/>
+    <path d="M432 366V352a4 4 0 0 1 8 0v10" fill="none" stroke="#23313d" stroke-width="2" stroke-linecap="round"/>
+    <path d="M432 358h-2a3 3 0 0 0 0 6h1" fill="none" stroke="#23313d" stroke-width="2" stroke-linecap="round"/>
+    <text x="416" y="394">選取</text>
+  </g>
+
+  <rect x="920" y="140" width="410" height="300" rx="14" fill="#ffffff" stroke="#d7e0e8"/>
+  <text x="948" y="180" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="18" font-weight="700" fill="#315d84">Sidebar 文件朗讀</text>
+  <text x="948" y="214" font-family="Menlo, monospace" font-size="13" fill="#8a97a3">README.md</text>
+  <text x="948" y="248" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="16" fill="#23313d">按空白位</text>
+  <text x="948" y="276" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="16" font-weight="700" fill="#23313d">由第一句開始讀全篇。</text>
+  <line x1="948" y1="285" x2="1138" y2="285" stroke="#e11d48" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="948" y="318" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="16" fill="#23313d">按段落＝只讀該段；</text>
+  <text x="948" y="346" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="16" fill="#23313d">PDF／Office 會逐頁接落去。</text>
+  <text x="948" y="392" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="12" fill="#8a97a3">Markdown 會跳過 YAML frontmatter</text>
+
+  <rect x="70" y="480" width="1260" height="280" rx="14" fill="#ffffff" stroke="#d7e0e8"/>
+  <text x="100" y="520" font-family="PingFang HK, Helvetica Neue, sans-serif" font-size="18" font-weight="700" fill="#315d84">跟隨鍵的兩種狀態</text>
+
+  <g font-family="PingFang HK, Helvetica Neue, sans-serif">
+    <rect x="100" y="552" width="46" height="46" rx="11" fill="#fff" stroke="#cfd9e2"/>
+    <path d="M120 560v17" fill="none" stroke="#23313d" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="m112 571 8 8 8-8" fill="none" stroke="#23313d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M110 587h20" fill="none" stroke="#23313d" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="100" y="628" font-size="14" fill="#5c6b78">預設：黑色</text>
+    <text x="100" y="650" font-size="14" fill="#5c6b78">唔跳、唔自動翻頁</text>
+
+    <rect x="330" y="552" width="46" height="46" rx="11" fill="#fff" stroke="#e11d48"/>
+    <path d="M350 560v17" fill="none" stroke="#e11d48" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="m342 571 8 8 8-8" fill="none" stroke="#e11d48" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M340 587h20" fill="none" stroke="#e11d48" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="330" y="628" font-size="14" fill="#e11d48" font-weight="700">按下：紅色</text>
+    <text x="330" y="650" font-size="14" fill="#5c6b78">即時跳去朗讀位置</text>
+    <text x="330" y="670" font-size="14" fill="#5c6b78">並開啟自動翻頁</text>
+
+    <text x="620" y="580" font-size="15" fill="#23313d">再按一下：變回黑色，停止跟隨，朗讀繼續。</text>
+    <text x="620" y="608" font-size="15" fill="#23313d">每次新朗讀都會重設做黑色。</text>
+    <text x="620" y="636" font-size="15" fill="#23313d">朗讀結束／停止後亦會自動重設。</text>
+  </g>
+</svg>

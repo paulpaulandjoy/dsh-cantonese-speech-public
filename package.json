@@ -25,7 +25,10 @@
     "USER-GUIDE.docx",
     "scripts/*.py",
     "LICENSE",
-    "SECURITY.md"
+    "SECURITY.md",
+    "DEMO.md",
+    "docs/*.png",
+    "docs/*.svg"
   ],
   "dsh": {
     "bundle": {

@@ -8,6 +8,7 @@ DSH Desktop 的 macOS 本機朗讀外掛：自動讀出助手回覆，或用食�
 
 ## 功能
 
+快速示範：[DEMO.md](DEMO.md)  
 完整人類版指南：[USER-GUIDE.pdf](USER-GUIDE.pdf)  
 可編輯 DOCX：[USER-GUIDE.docx](USER-GUIDE.docx)
 
